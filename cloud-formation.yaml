@@ -1,6 +1,11 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
 Parameters:
+  InstanceName:
+    Description: Name of EC2 instance
+    Type: String
+    Default: temporary-stack-ec2
+
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access
     Type: AWS::EC2::KeyPair::KeyName
@@ -38,6 +43,26 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
 
+  EC2AccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EC2AccessRole
+      InstanceProfileName: !Sub '${InstanceName}-profile'
+
   EC2Instance:
     Type: AWS::EC2::Instance
     Properties:
@@ -45,6 +70,7 @@ Resources:
       SecurityGroups: [!Ref EC2SecurityGroup]
       KeyName: !Ref KeyName
       ImageId: !Ref LatestAmiId
+      IamInstanceProfile: !Ref EC2InstanceProfile
 
   EC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -56,11 +82,65 @@ Resources:
           ToPort: 22
           CidrIp: !Ref SSHLocation
 
+  DummyPublicTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 6
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Name: !Join ["-", [!Ref "AWS::StackName", "drop-1"]]
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref VPC
+
+  PublicLoadBalancerHttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref DummyPublicTargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref PublicLoadBalancer
+      Port: 80
+      Protocol: HTTP
+    DependsOn:
+      - PublicLoadBalancer
+
+  PublicLoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow traffic to public load balancer
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        # Allow access from anywhere on the internet
+        - CidrIp: 0.0.0.0/0
+          FromPort: 80
+          IpProtocol: "tcp"
+          ToPort: 80
+        - CidrIp: 0.0.0.0/0
+          FromPort: 443
+          IpProtocol: "tcp"
+          ToPort: 443
+
+  PublicLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internet-facing
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: "30"
+      Subnets:
+        - !Ref PublicSubnetOne
+        - !Ref PublicSubnetTwo
+      SecurityGroups: [!Ref PublicLoadBalancerSecurityGroup]
+
   VPC:
     Type: AWS::EC2::VPC
     Properties:
       EnableDnsSupport: true
-      EnableDnsHostNames: true
+      EnableDnsHostnames: true
       CidrBlock: !FindInMap ["SubnetConfig", "VPC", "CIDR"]
 
   InternetGateway:
@@ -124,6 +204,8 @@ Resources:
       RouteTableId: !Ref PublicRouteTable
       SubnetId: !Ref PublicSubnetTwo
 
+  # We may also need a private subnet to protect servers from the internet
+
 Outputs:
   BucketName:
     Description: Name of S3 bucket
@@ -142,8 +224,9 @@ Outputs:
     Value: !GetAtt [EC2Instance, PublicDnsName]
   PublicIP:
     Description: Public IP of the EC2 Instance
-    Value: !GetAtt [EC2Instance, PublicIp]
+    Value:
+      !GetAtt [EC2Instance, PublicIp]
 
   URL:
     Description: URL of Elastic Load Balancer
-    Value: !Join ["", ["http://", !GetAtt [ElasticLoadBalancer, DNSName]]]
+    Value: !Join ["", ["http://", !GetAtt [PublicLoadBalancer, DNSName]]]
