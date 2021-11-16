@@ -208,29 +208,25 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: !Ref ServiceName
-      Cpu: !Ref ContainerCpu
-      Memory: !Ref ContainerMemory
       ContainerDefinitions:
         - Name: !Ref ServiceName
           Image: !Ref ServiceImage
           PortMappings:
             - ContainerPort: !Ref ContainerPort
           Memory: !Ref ContainerMemory
-          Cpu:
-            !Ref ContainerCpu
+          Cpu: !Ref ContainerCpu
 
-            #  Service:
-            #    Type: AWS::ECS::Service
-            #    DependsOn: PublicLoadBalancerHttpListener
-            #    Properties:
-            #      ServiceName: !Ref ServiceName
-            #      Cluster: !Ref ECSCluster
-            #      DesiredCount: 1
-            #      TaskDefinition: !Ref TaskDefinition
-            #      LoadBalancers:
-            #        - ContainerName: !Ref ServiceName
-            #          ContainerPort: !Ref ContainerPort
-            #          TargetGroupArn: !Ref PublicTargetGroup
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn: PublicLoadBalancerHttpListener
+    Properties:
+      Cluster: !Ref ECSCluster
+      DesiredCount: 0
+      TaskDefinition: !Ref TaskDefinition
+      LoadBalancers:
+        - ContainerName: !Ref ServiceName
+          ContainerPort: !Ref ContainerPort
+          TargetGroupArn: !Ref PublicTargetGroup
 
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
