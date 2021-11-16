@@ -1,10 +1,25 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
 Parameters:
-  InstanceName:
-    Description: Name of EC2 instance
+  ServiceName:
     Type: String
-    Default: temporary-stack-ec2
+    Description: A human-readable name for the service.
+  ServiceImage:
+    Type: String
+    Default: andrewgryan/my-solidjs-app:latest
+    Description: Docker image for the service.
+  ContainerCpu:
+    Type: Number
+    Default: 256
+    Description: Container CPU requirement. 1024 is 1 CPU.
+  ContainerMemory:
+    Type: Number
+    Default: 512
+    Description: Container memory in megabytes
+  ContainerPort:
+    Type: Number
+    Default: 80
+    Description: Container port
 
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access
@@ -40,9 +55,6 @@ Mappings:
       CIDR: "10.0.1.0/24"
 
 Resources:
-  S3Bucket:
-    Type: AWS::S3::Bucket
-
   EC2AccessRole:
     Type: AWS::IAM::Role
     Properties:
@@ -61,9 +73,9 @@ Resources:
     Properties:
       Roles:
         - !Ref EC2AccessRole
-      InstanceProfileName: !Sub "${InstanceName}-profile"
+      InstanceProfileName: !Sub "${AWS::StackName}-profile"
 
-  DummyPublicTargetGroup:
+  PublicTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       HealthCheckIntervalSeconds: 6
@@ -71,7 +83,7 @@ Resources:
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
-      Name: !Join ["-", [!Ref "AWS::StackName", "drop-1"]]
+      Name: !Ref ServiceName
       Port: 80
       Protocol: HTTP
       UnhealthyThresholdCount: 2
@@ -81,7 +93,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
-        - TargetGroupArn: !Ref DummyPublicTargetGroup
+        - TargetGroupArn: !Ref PublicTargetGroup
           Type: forward
       LoadBalancerArn: !Ref PublicLoadBalancer
       Port: 80
@@ -127,7 +139,7 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: temporary-stack
+          Value: !Sub ${AWS::StackName}
 
   VPCGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -141,7 +153,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: temporary-stack
+          Value: !Sub ${AWS::StackName}
 
   DefaultPublicRoute:
     DependsOn: VPCGatewayAttachment
@@ -161,7 +173,7 @@ Resources:
       CidrBlock: !FindInMap ["SubnetConfig", "PublicOne", "CIDR"]
       Tags:
         - Key: Name
-          Value: temporary-stack-public-one
+          Value: !Sub ${AWS::StackName}-public-one
 
   PublicSubnetOneRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -179,7 +191,7 @@ Resources:
       CidrBlock: !FindInMap ["SubnetConfig", "PublicTwo", "CIDR"]
       Tags:
         - Key: Name
-          Value: temporary-stack-public-two
+          Value: !Sub ${AWS::StackName}-public-two
 
   PublicSubnetTwoRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -191,6 +203,34 @@ Resources:
 
   ECSCluster:
     Type: AWS::ECS::Cluster
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Ref ServiceName
+      Cpu: !Ref ContainerCpu
+      Memory: !Ref ContainerMemory
+      ContainerDefinitions:
+        - Name: !Ref ServiceName
+          Image: !Ref ServiceImage
+          PortMappings:
+            - ContainerPort: !Ref ContainerPort
+          Memory: !Ref ContainerMemory
+          Cpu:
+            !Ref ContainerCpu
+
+            #  Service:
+            #    Type: AWS::ECS::Service
+            #    DependsOn: PublicLoadBalancerHttpListener
+            #    Properties:
+            #      ServiceName: !Ref ServiceName
+            #      Cluster: !Ref ECSCluster
+            #      DesiredCount: 1
+            #      TaskDefinition: !Ref TaskDefinition
+            #      LoadBalancers:
+            #        - ContainerName: !Ref ServiceName
+            #          ContainerPort: !Ref ContainerPort
+            #          TargetGroupArn: !Ref PublicTargetGroup
 
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -222,7 +262,7 @@ Resources:
       KeyName: !Ref KeyName
       UserData:
         Fn::Base64: !Sub |
-          #!/bin/bash -xe
+          #!/bin/bash -x
           echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
           yum install -y aws-cfn-bootstrap
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource AutoScalingGroup --region ${AWS::Region}
@@ -272,12 +312,6 @@ Resources:
           CidrIp: !Ref SSHLocation
 
 Outputs:
-  BucketName:
-    Description: Name of S3 bucket
-    Value: !Ref S3Bucket
-    Export:
-      Name: s3-bucket-name
-
   URL:
     Description: URL of Elastic Load Balancer
     Value: !Join ["", ["http://", !GetAtt [PublicLoadBalancer, DNSName]]]
