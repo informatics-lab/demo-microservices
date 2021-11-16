@@ -202,6 +202,12 @@ Resources:
       VPCZoneIdentifier:
         - !Ref PublicSubnetOne
         - !Ref PublicSubnetTwo
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: true
 
   LaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
@@ -214,30 +220,45 @@ Resources:
         - !Ref ECSHostSecurityGroup
         - !Ref SSHSecurityGroup
       KeyName: !Ref KeyName
-      UserData: !Base64
-        "Fn::Join":
-          - ""
-          - - |
-              #!/bin/bash
-            - echo ECS_CLUSTER=
-            - !Ref ECSCluster
-            - |2
-               >> /etc/ecs/ecs.config
-            - |
-              yum install -y aws-cfn-bootstrap
-            - "/opt/aws/bin/cfn-signal -e $? "
-            - "    --stack "
-            - !Ref "AWS::StackName"
-            - "    --resource AutoScalingGroup "
-            - "    --region "
-            - !Ref "AWS::Region"
-            - |+
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
+          yum install -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource AutoScalingGroup --region ${AWS::Region}
 
   ECSHostSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Access to ECS hosts that run containers
       VpcId: !Ref VPC
+
+  ECSHostSecurityGroupHttpInbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref ECSHostSecurityGroup
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      CidrIp: 0.0.0.0/0
+
+  ECSHostSecurityGroupHttpAltInbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref ECSHostSecurityGroup
+      IpProtocol: tcp
+      FromPort: 8080
+      ToPort: 8080
+      CidrIp: 0.0.0.0/0
+
+  ECSHostSecurityGroupHttpsInbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref ECSHostSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIp: 0.0.0.0/0
 
   SSHSecurityGroup:
     Type: AWS::EC2::SecurityGroup
