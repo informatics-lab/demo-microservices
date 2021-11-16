@@ -63,25 +63,6 @@ Resources:
         - !Ref EC2AccessRole
       InstanceProfileName: !Sub "${InstanceName}-profile"
 
-  EC2Instance:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: !Ref InstanceType
-      SecurityGroups: [!Ref EC2SecurityGroup]
-      KeyName: !Ref KeyName
-      ImageId: !Ref LatestAmiId
-      IamInstanceProfile: !Ref EC2InstanceProfile
-
-  EC2SecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Allow SSH access to EC2 Instance
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: !Ref SSHLocation
-
   DummyPublicTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -208,25 +189,73 @@ Resources:
 
   # We may also need a private subnet to protect servers from the internet
 
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      DesiredCapacity: 1
+      MinSize: 0
+      MaxSize: 2
+      LaunchConfigurationName: !Ref LaunchConfiguration
+      VPCZoneIdentifier:
+        - !Ref PublicSubnetOne
+        - !Ref PublicSubnetTwo
+
+  LaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: true
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref LatestAmiId
+      SecurityGroups:
+        - !Ref ECSHostSecurityGroup
+        - !Ref SSHSecurityGroup
+      KeyName: !Ref KeyName
+      UserData: !Base64
+        "Fn::Join":
+          - ""
+          - - |
+              #!/bin/bash
+            - echo ECS_CLUSTER=
+            - !Ref ECSCluster
+            - |2
+               >> /etc/ecs/ecs.config
+            - |
+              yum install -y aws-cfn-bootstrap
+            - "/opt/aws/bin/cfn-signal -e $? "
+            - "    --stack "
+            - !Ref "AWS::StackName"
+            - "    --resource AutoScalingGroup "
+            - "    --region "
+            - !Ref "AWS::Region"
+            - |+
+
+  ECSHostSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access to ECS hosts that run containers
+      VpcId: !Ref VPC
+
+  SSHSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH access to EC2 Instance in VPC
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SSHLocation
+
 Outputs:
   BucketName:
     Description: Name of S3 bucket
     Value: !Ref S3Bucket
     Export:
       Name: s3-bucket-name
-
-  InstanceId:
-    Description: ID of EC2 instance
-    Value: !Ref EC2Instance
-  AZ:
-    Description: Availability Zone of the EC2 Instance
-    Value: !GetAtt [EC2Instance, AvailabilityZone]
-  PublicDNS:
-    Description: Public DNS of the EC2 Instance
-    Value: !GetAtt [EC2Instance, PublicDnsName]
-  PublicIP:
-    Description: Public IP of the EC2 Instance
-    Value: !GetAtt [EC2Instance, PublicIp]
 
   URL:
     Description: URL of Elastic Load Balancer
