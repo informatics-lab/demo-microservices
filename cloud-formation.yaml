@@ -20,6 +20,18 @@ Parameters:
     Type: Number
     Default: 80
     Description: Container port
+  Path:
+    Type: String
+    Default: "*"
+    Description: A path on the public load balancer that this service
+      should be connected to. Use * to send all load balancer
+      traffic to this service.
+  Priority:
+    Type: Number
+    Default: 1
+    Description: The priority for the routing rule added to the load balancer.
+      This only applies if your have multiple services which have been
+      assigned to different paths on the load balancer.
 
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access
@@ -55,6 +67,18 @@ Mappings:
       CIDR: "10.0.1.0/24"
 
 Resources:
+  ListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - TargetGroupArn: !Ref PublicTargetGroup
+          Type: forward
+      Conditions:
+        - Field: path-pattern
+          Values: [!Ref Path]
+      ListenerArn: !Ref PublicLoadBalancerHttpListener
+      Priority: !Ref Priority
+
   EC2AccessRole:
     Type: AWS::IAM::Role
     Properties:
@@ -72,7 +96,7 @@ Resources:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
-        - !Ref EC2AccessRole
+        - !Ref ECSAccessRole
       InstanceProfileName: !Sub "${AWS::StackName}-profile"
 
   PublicTargetGroup:
@@ -83,7 +107,6 @@ Resources:
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
-      Name: !Ref ServiceName
       Port: 80
       Protocol: HTTP
       UnhealthyThresholdCount: 2
@@ -93,8 +116,13 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
-        - TargetGroupArn: !Ref PublicTargetGroup
-          Type: forward
+        - Type: fixed-response
+          FixedResponseConfig:
+            ContentType: text/html
+            MessageBody: "<h1>Hello, World!</h1>"
+            StatusCode: 200
+      #- TargetGroupArn: !Ref PublicTargetGroup
+      #  Type: forward
       LoadBalancerArn: !Ref PublicLoadBalancer
       Port: 80
       Protocol: HTTP
@@ -204,6 +232,23 @@ Resources:
   ECSCluster:
     Type: AWS::ECS::Cluster
 
+  ECSClusterCapacityProviderAssociation:
+    Type: AWS::ECS::ClusterCapacityProviderAssociations
+    Properties:
+      Cluster: !Ref ECSCluster
+      CapacityProviders:
+        - !Ref CapacityProvider
+      DefaultCapacityProviderStrategy:
+        - Base: 0
+          Weight: 1
+          CapacityProvider: !Ref CapacityProvider
+
+  CapacityProvider:
+    Type: AWS::ECS::CapacityProvider
+    Properties:
+      AutoScalingGroupProvider:
+        AutoScalingGroupArn: !Ref AutoScalingGroup
+
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -223,6 +268,7 @@ Resources:
       Cluster: !Ref ECSCluster
       DesiredCount: 0
       TaskDefinition: !Ref TaskDefinition
+      LaunchType: EC2
       LoadBalancers:
         - ContainerName: !Ref ServiceName
           ContainerPort: !Ref ContainerPort
@@ -231,9 +277,11 @@ Resources:
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      DesiredCapacity: 1
+      DesiredCapacity: 2
       MinSize: 0
       MaxSize: 2
+      TargetGroupARNs:
+        - !Ref PublicTargetGroup
       LaunchConfigurationName: !Ref LaunchConfiguration
       VPCZoneIdentifier:
         - !Ref PublicSubnetOne
@@ -259,6 +307,7 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -x
+          mkdir /etc/ecs
           echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
           yum install -y aws-cfn-bootstrap
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource AutoScalingGroup --region ${AWS::Region}
@@ -306,6 +355,42 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: !Ref SSHLocation
+
+  # Role for the EC2 hosts. This allows the ECS agent on the EC2 hosts
+  # to communciate with the ECS control plane, as well as download the docker
+  # images from ECR to run on your host.
+  ECSAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ec2.amazonaws.com]
+            Action: ["sts:AssumeRole"]
+      Path: /
+      Policies:
+        - PolicyName: ecs-service
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ecs:CreateCluster"
+                  - "ecs:DeregisterContainerInstance"
+                  - "ecs:DiscoverPollEndpoint"
+                  - "ecs:Poll"
+                  - "ecs:RegisterContainerInstance"
+                  - "ecs:StartTelemetrySession"
+                  - "ecs:Submit*"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                  - "ecr:GetAuthorizationToken"
+                  - "ecr:BatchGetImage"
+                  - "ecr:GetDownloadUrlForLayer"
+                Resource: "*"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
 
 Outputs:
   URL:
