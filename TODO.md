@@ -1,0 +1,3 @@
+-   AutoScalingGroup
+-   AWS::AutoScaling::LaunchConfiguration
+-   TargetGroup

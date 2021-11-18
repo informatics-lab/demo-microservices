@@ -1,5 +1,15 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
+Parameters:
+  SSHLocation:
+    Description: The IP address range used to SSH into EC2 instances
+    Type: String
+    MinLength: 9
+    MaxLength: 18
+    Default: 0.0.0.0/0
+    AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
+    ConstraintDescription: Must be a valid IP CIDR range of the form x.x.x.x/x
+
 Mappings:
   SubnetConfig:
     VPC:
@@ -98,6 +108,17 @@ Resources:
           IpProtocol: "tcp"
           ToPort: 443
 
+  SecurityGroupSSH:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable SSH to EC2 instance
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SSHLocation
+
 Outputs:
   VPCId:
     Description: VPC ID
@@ -119,3 +140,8 @@ Outputs:
     Value: !Ref SecurityGroupWeb
     Export:
       Name: !Sub ${AWS::StackName}-SecurityGroupWeb
+  SecurityGroupSSH:
+    Description: Security group allows SSH login inside VPC
+    Value: !Ref SecurityGroupSSH
+    Export:
+      Name: !Sub ${AWS::StackName}-SecurityGroupSSH

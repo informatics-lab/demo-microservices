@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "aws-ecs"
+version = "0.1.0"
+description = ""
+authors = ["andrewgryan <andrew.ryan@metoffice.gov.uk>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+cfn-lint = "^0.56.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
