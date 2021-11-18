@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  ServerStack:
+    Type: String
+    Description: Name of stack containing AutoScalingGroup
+
+Resources:
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      CapacityProviders:
+        - !Ref CapacityProvider
+
+  CapacityProvider:
+    Type: AWS::ECS::CapacityProvider
+    Properties:
+      AutoScalingGroupProvider:
+        AutoScalingGroupArn: !ImportValue
+          Fn::Sub: ${ServerStack}-AutoScalingGroup
+
+Outputs:
+  Cluster:
+    Description: Cluster ID
+    Value: !Ref Cluster
+    Export:
+      Name: !Sub ${AWS::StackName}-Cluster
