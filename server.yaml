@@ -22,6 +22,32 @@ Parameters:
     AllowedValues: [t2.nano, t2.micro, t2.small]
 
 Resources:
+  ListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - TargetGroupArn: !Ref TargetGroup
+          Type: forward
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - /
+      ListenerArn: !Ref Listener
+      Priority: 1
+
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref TargetGroup
+                Weight: 1
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -37,6 +63,18 @@ Resources:
       SecurityGroups:
         - !ImportValue
           Fn::Sub: ${NetworkStack}-SecurityGroupWeb
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthyThresholdCount: 2
+      Port: 80
+      Protocol: HTTP
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 0
+      VpcId: !ImportValue
+        Fn::Sub: ${NetworkStack}-VPCId
 
   Role:
     Type: AWS::IAM::Role
@@ -93,6 +131,8 @@ Resources:
       MaxSize: 5
       DesiredCapacity: 1
       LaunchConfigurationName: !Ref LaunchConfiguration
+      TargetGroupARNs:
+        - !Ref TargetGroup
       VPCZoneIdentifier:
         - !ImportValue
           Fn::Sub: ${NetworkStack}-SubnetOne
@@ -104,3 +144,8 @@ Resources:
     UpdatePolicy:
       AutoScalingReplacingUpdate:
         WillReplace: true
+
+Outputs:
+  URL:
+    Description: URL of Elastic Load Balancer
+    Value: !Join ["", ["http://", !GetAtt [LoadBalancer, DNSName]]]
