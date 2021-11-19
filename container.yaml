@@ -61,6 +61,12 @@ Resources:
               HostPort: 80
             - ContainerPort: 8080
               HostPort: 8080
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-region: !Ref AWS::Region
+              awslogs-group: !Ref LogGroup
+              awslogs-stream-prefix: !Ref AWS::StackName
       TaskRoleArn: !Ref RoleTraefik
 
   ServiceNGINX:
@@ -80,3 +86,15 @@ Resources:
             - ContainerPort: 80
           DockerLabels:
             traefik.http.routers.nginx.rule: !Sub Host(`${Domain}`)
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-region: !Ref AWS::Region
+              awslogs-group: !Ref LogGroup
+              awslogs-stream-prefix: !Ref AWS::StackName
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub ${AWS::StackName}-logs
+      RetentionInDays: 14
