@@ -1,0 +1,16 @@
+[api]
+    insecure = true
+    dashboard = true
+
+[entryPoints]
+    [entryPoints.web]
+        address = ":80"
+
+[providers]
+    [providers.ecs]
+        clusters = ["CLUSTER"]
+        autoDiscoverClusters = false
+        refreshSeconds = 15
+        exposedByDefault = true
+        region = "AWS_REGION"
+

@@ -26,3 +26,4 @@ Resources:
       TemplateURL: container.yaml
       Parameters:
         Cluster: !GetAtt [StackServer, Outputs.Cluster]
+        Domain: !GetAtt [StackServer, Outputs.Domain]

@@ -77,6 +77,32 @@ Resources:
       Port: 80
       Protocol: HTTP
 
+  ListenerRule8080:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - TargetGroupArn: !Ref TargetGroup
+          Type: forward
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - /
+      ListenerArn: !Ref Listener8080
+      Priority: 2
+
+  Listener8080:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref TargetGroup
+                Weight: 1
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 8080
+      Protocol: HTTP
+
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -189,3 +215,6 @@ Outputs:
   URL:
     Description: URL of Elastic Load Balancer
     Value: !Join ["", ["http://", !GetAtt [LoadBalancer, DNSName]]]
+  Domain:
+    Description: Domain of Elastic Load Balancer
+    Value: !GetAtt [LoadBalancer, DNSName]
