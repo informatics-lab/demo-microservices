@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  ServerStack:
+    Type: String
+    Description: Name of stack containing Cluster
+
+Resources:
+  RoleTraefik:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: "sts:AssumeRole"
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+      Policies:
+        - PolicyName: !Sub ${AWS::StackName}-traefik
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:ListClusters
+                  - ecs:DescribeClusters
+                  - ecs:ListTasks
+                  - ecs:DescribeTasks
+                  - ecs:DescribeContainerInstances
+                  - ecs:DescribeTaskDefinition
+                  - ec2:DescribeInsances
+                Resource: "*"
+
+  ServiceTraefik:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !ImportValue
+        Fn::Sub: ${ServerStack}-Cluster
+      TaskDefinition: !Ref TaskDefinitionTraefik
+
+  TaskDefinitionTraefik:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ContainerDefinitions:
+        - Image: traefik:latest
+          Name: traefik
+          Memory: 32
+          PortMappings:
+            - ContainerPort: 80
+              HostPort: 80
+              Protocol: HTTP
+            - ContainerPort: 8080
+      TaskRoleArn: !Ref RoleTraefik
+
+  ServiceNGINX:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !ImportValue
+        Fn::Sub: ${ServerStack}-Cluster
+      TaskDefinition: !Ref TaskDefinitionNGINX
+
+  TaskDefinitionNGINX:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ContainerDefinitions:
+        - Image: nginx:latest
+          Name: web-server
+          Memory: 32
+          PortMappings:
+            - ContainerPort: 80
