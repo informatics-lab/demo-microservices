@@ -1,9 +1,9 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
 Parameters:
-  ServerStack:
+  Cluster:
     Type: String
-    Description: Name of stack containing Cluster
+    Description: Name of Cluster to host services and tasks
 
 Resources:
   RoleTraefik:
@@ -34,8 +34,7 @@ Resources:
   ServiceTraefik:
     Type: AWS::ECS::Service
     Properties:
-      Cluster: !ImportValue
-        Fn::Sub: ${ServerStack}-Cluster
+      Cluster: !Ref Cluster
       TaskDefinition: !Ref TaskDefinitionTraefik
 
   TaskDefinitionTraefik:
@@ -55,8 +54,7 @@ Resources:
   ServiceNGINX:
     Type: AWS::ECS::Service
     Properties:
-      Cluster: !ImportValue
-        Fn::Sub: ${ServerStack}-Cluster
+      Cluster: !Ref Cluster
       TaskDefinition: !Ref TaskDefinitionNGINX
 
   TaskDefinitionNGINX:

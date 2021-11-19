@@ -123,25 +123,15 @@ Outputs:
   VPCId:
     Description: VPC ID
     Value: !Ref VPC
-    Export:
-      Name: !Sub ${AWS::StackName}-VPCId
   SubnetOne:
     Description: Public Subnet One
     Value: !Ref PublicSubnetOne
-    Export:
-      Name: !Sub ${AWS::StackName}-SubnetOne
   SubnetTwo:
     Description: Public Subnet Two
     Value: !Ref PublicSubnetTwo
-    Export:
-      Name: !Sub ${AWS::StackName}-SubnetTwo
   SecurityGroupWeb:
     Description: Security group allows web traffic via VPC
     Value: !Ref SecurityGroupWeb
-    Export:
-      Name: !Sub ${AWS::StackName}-SecurityGroupWeb
   SecurityGroupSSH:
     Description: Security group allows SSH login inside VPC
     Value: !Ref SecurityGroupSSH
-    Export:
-      Name: !Sub ${AWS::StackName}-SecurityGroupSSH

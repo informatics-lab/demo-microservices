@@ -1,10 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
 Parameters:
-  NetworkStack:
-    Type: String
-    Description: Name of stack containing VPC, Subnets and SecurityGroups
-
   ClusterName:
     Type: String
     Description: Name for Cluster to prevent circular dependency
@@ -24,6 +20,22 @@ Parameters:
     Type: String
     Default: t2.nano
     AllowedValues: [t2.nano, t2.micro, t2.small]
+
+  SubnetOne:
+    Description: Public Subnet
+    Type: String
+  SubnetTwo:
+    Description: Public Subnet
+    Type: String
+  SecurityGroupSSH:
+    Description: Security group access port 22
+    Type: String
+  SecurityGroupWeb:
+    Description: Security group access web traffic
+    Type: String
+  VPC:
+    Description: Virtual private cloud
+    Type: String
 
 Resources:
   Cluster:
@@ -73,13 +85,10 @@ Resources:
         - Key: idle_timeout.timeout_seconds
           Value: "30"
       Subnets:
-        - !ImportValue
-          Fn::Sub: ${NetworkStack}-SubnetOne
-        - !ImportValue
-          Fn::Sub: ${NetworkStack}-SubnetTwo
+        - !Ref SubnetOne
+        - !Ref SubnetTwo
       SecurityGroups:
-        - !ImportValue
-          Fn::Sub: ${NetworkStack}-SecurityGroupWeb
+        - !Ref SecurityGroupWeb
 
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -90,8 +99,7 @@ Resources:
       TargetGroupAttributes:
         - Key: deregistration_delay.timeout_seconds
           Value: 0
-      VpcId: !ImportValue
-        Fn::Sub: ${NetworkStack}-VPCId
+      VpcId: !Ref VPC
 
   Role:
     Type: AWS::IAM::Role
@@ -142,10 +150,8 @@ Resources:
       InstanceType: !Ref InstanceType
       ImageId: !Ref ImageId
       SecurityGroups:
-        - !ImportValue
-          Fn::Sub: ${NetworkStack}-SecurityGroupWeb
-        - !ImportValue
-          Fn::Sub: ${NetworkStack}-SecurityGroupSSH
+        - !Ref SecurityGroupWeb
+        - !Ref SecurityGroupSSH
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -x
@@ -167,10 +173,8 @@ Resources:
       TargetGroupARNs:
         - !Ref TargetGroup
       VPCZoneIdentifier:
-        - !ImportValue
-          Fn::Sub: ${NetworkStack}-SubnetOne
-        - !ImportValue
-          Fn::Sub: ${NetworkStack}-SubnetTwo
+        - !Ref SubnetOne
+        - !Ref SubnetTwo
     CreationPolicy:
       ResourceSignal:
         Timeout: PT15M
@@ -182,8 +186,6 @@ Outputs:
   Cluster:
     Description: Cluster ID
     Value: !Ref Cluster
-    Export:
-      Name: !Sub ${AWS::StackName}-Cluster
   URL:
     Description: URL of Elastic Load Balancer
     Value: !Join ["", ["http://", !GetAtt [LoadBalancer, DNSName]]]

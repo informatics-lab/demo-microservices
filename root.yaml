@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Resources:
+  StackNetwork:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: network.yaml
+
+  StackServer:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: server.yaml
+      Parameters:
+        KeyName: andy
+        ImageId: /aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id
+        ClusterName: practice
+        SubnetOne: !GetAtt [StackNetwork, Outputs.SubnetOne]
+        SubnetTwo: !GetAtt [StackNetwork, Outputs.SubnetTwo]
+        SecurityGroupSSH: !GetAtt [StackNetwork, Outputs.SecurityGroupSSH]
+        SecurityGroupWeb: !GetAtt [StackNetwork, Outputs.SecurityGroupWeb]
+        VPC: !GetAtt [StackNetwork, Outputs.VPCId]
+
+  StackContainer:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: container.yaml
+      Parameters:
+        Cluster: !GetAtt [StackServer, Outputs.Cluster]
