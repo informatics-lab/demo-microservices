@@ -28,3 +28,6 @@ Resources:
         Cluster: !GetAtt [StackServer, Outputs.Cluster]
         Domain: !GetAtt [StackServer, Outputs.Domain]
         TargetGroup: !GetAtt [StackServer, Outputs.TargetGroup]
+        SubnetOne: !GetAtt [StackNetwork, Outputs.SubnetOne]
+        SubnetTwo: !GetAtt [StackNetwork, Outputs.SubnetTwo]
+        SecurityGroupWeb: !GetAtt [StackNetwork, Outputs.SecurityGroupWeb]

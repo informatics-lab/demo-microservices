@@ -122,6 +122,7 @@ Resources:
       HealthyThresholdCount: 2
       Port: 80
       Protocol: HTTP
+      TargetType: ip
       TargetGroupAttributes:
         - Key: deregistration_delay.timeout_seconds
           Value: 0

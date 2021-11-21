@@ -11,6 +11,16 @@ Parameters:
     Type: String
     Description: TargetGroup for internet traffic
 
+  SecurityGroupWeb:
+    Type: String
+    Description: SecurityGroup for internet traffic
+  SubnetOne:
+    Type: String
+    Description: Subnet A in a VPC
+  SubnetTwo:
+    Type: String
+    Description: Subnet B in a VPC
+
 Resources:
   RoleService:
     Type: AWS::IAM::Role
@@ -100,8 +110,16 @@ Resources:
     Properties:
       Cluster: !Ref Cluster
       TaskDefinition: !Ref TaskDefinitionNGINX
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - !Ref SecurityGroupWeb
+          Subnets:
+            - !Ref SubnetOne
+            - !Ref SubnetTwo
       DesiredCount: 1
-      Role: !Ref RoleService
+      # Role: !Ref RoleService
       LoadBalancers:
         - ContainerName: nginx
           ContainerPort: 80
@@ -110,7 +128,7 @@ Resources:
   TaskDefinitionNGINX:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      NetworkMode: bridge
+      NetworkMode: awsvpc
       ContainerDefinitions:
         - Image: nginx:latest
           Name: nginx
