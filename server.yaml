@@ -196,8 +196,6 @@ Resources:
       MaxSize: 5
       DesiredCapacity: 1
       LaunchConfigurationName: !Ref LaunchConfiguration
-      TargetGroupARNs:
-        - !Ref TargetGroup
       VPCZoneIdentifier:
         - !Ref SubnetOne
         - !Ref SubnetTwo
@@ -212,6 +210,9 @@ Outputs:
   Cluster:
     Description: Cluster ID
     Value: !Ref Cluster
+  TargetGroup:
+    Description: TargetGroup for internet-facing traffic
+    Value: !Ref TargetGroup
   URL:
     Description: URL of Elastic Load Balancer
     Value: !Join ["", ["http://", !GetAtt [LoadBalancer, DNSName]]]

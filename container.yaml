@@ -7,8 +7,36 @@ Parameters:
   Domain:
     Type: String
     Description: Domain name for Traefik to use
+  TargetGroup:
+    Type: String
+    Description: TargetGroup for internet traffic
 
 Resources:
+  RoleService:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ecs.amazonaws.com]
+            Action: ["sts:AssumeRole"]
+      Path: /
+      Policies:
+        - PolicyName: ecs-service
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - elasticloadbalancing:DeregisterInstancesFromLoadBalancer
+                  - elasticloadbalancing:DeregisterTargets
+                  - elasticloadbalancing:Describe*
+                  - elasticloadbalancing:RegisterInstancesWithLoadBalancer
+                  - elasticloadbalancing:RegisterTargets
+                  - ec2:Describe*
+                  - ec2:AuthorizeSecurityGroupIngress
+                Resource: "*"
+
   RoleTraefik:
     Type: AWS::IAM::Role
     Properties:
@@ -40,7 +68,7 @@ Resources:
     Properties:
       Cluster: !Ref Cluster
       TaskDefinition: !Ref TaskDefinitionTraefik
-      DesiredCount: 1
+      DesiredCount: 0
 
   TaskDefinitionTraefik:
     Type: AWS::ECS::TaskDefinition
@@ -58,9 +86,7 @@ Resources:
           Memory: 32
           PortMappings:
             - ContainerPort: 80
-              HostPort: 80
             - ContainerPort: 8080
-              HostPort: 8080
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -74,16 +100,24 @@ Resources:
     Properties:
       Cluster: !Ref Cluster
       TaskDefinition: !Ref TaskDefinitionNGINX
+      DesiredCount: 1
+      Role: !Ref RoleService
+      LoadBalancers:
+        - ContainerName: nginx
+          ContainerPort: 80
+          TargetGroupArn: !Ref TargetGroup
 
   TaskDefinitionNGINX:
     Type: AWS::ECS::TaskDefinition
     Properties:
+      NetworkMode: bridge
       ContainerDefinitions:
         - Image: nginx:latest
-          Name: web-server
+          Name: nginx
           Memory: 32
           PortMappings:
             - ContainerPort: 80
+              HostPort: 80
           DockerLabels:
             traefik.http.routers.nginx.rule: !Sub Host(`${Domain}`)
           LogConfiguration:

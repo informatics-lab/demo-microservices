@@ -27,3 +27,4 @@ Resources:
       Parameters:
         Cluster: !GetAtt [StackServer, Outputs.Cluster]
         Domain: !GetAtt [StackServer, Outputs.Domain]
+        TargetGroup: !GetAtt [StackServer, Outputs.TargetGroup]
