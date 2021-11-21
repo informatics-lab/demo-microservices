@@ -78,11 +78,24 @@ Resources:
     Properties:
       Cluster: !Ref Cluster
       TaskDefinition: !Ref TaskDefinitionTraefik
-      DesiredCount: 0
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - !Ref SecurityGroupWeb
+          Subnets:
+            - !Ref SubnetOne
+            - !Ref SubnetTwo
+      DesiredCount: 1
+      LoadBalancers:
+        - ContainerName: traefik
+          ContainerPort: 8080
+          TargetGroupArn: !Ref TargetGroup
 
   TaskDefinitionTraefik:
     Type: AWS::ECS::TaskDefinition
     Properties:
+      NetworkMode: awsvpc
       ContainerDefinitions:
         - Image: andrewgryan/traefik-ecs:latest
           Environment:
@@ -96,7 +109,9 @@ Resources:
           Memory: 32
           PortMappings:
             - ContainerPort: 80
+              HostPort: 80
             - ContainerPort: 8080
+              HostPort: 8080
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -120,10 +135,6 @@ Resources:
             - !Ref SubnetTwo
       DesiredCount: 1
       # Role: !Ref RoleService
-      LoadBalancers:
-        - ContainerName: nginx
-          ContainerPort: 80
-          TargetGroupArn: !Ref TargetGroup
 
   TaskDefinitionNGINX:
     Type: AWS::ECS::TaskDefinition

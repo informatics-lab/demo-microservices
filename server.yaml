@@ -195,7 +195,7 @@ Resources:
           Value: practice-ec2-instance
       MinSize: 0
       MaxSize: 5
-      DesiredCapacity: 1
+      DesiredCapacity: 3
       LaunchConfigurationName: !Ref LaunchConfiguration
       VPCZoneIdentifier:
         - !Ref SubnetOne
