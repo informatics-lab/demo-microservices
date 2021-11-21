@@ -10,6 +10,9 @@ Parameters:
   TargetGroup:
     Type: String
     Description: TargetGroup for internet traffic
+  TargetGroup8080:
+    Type: String
+    Description: TargetGroup for Traefik traffic
 
   SecurityGroupWeb:
     Type: String
@@ -89,8 +92,11 @@ Resources:
       DesiredCount: 1
       LoadBalancers:
         - ContainerName: traefik
-          ContainerPort: 8080
+          ContainerPort: 80
           TargetGroupArn: !Ref TargetGroup
+        - ContainerName: traefik
+          ContainerPort: 8080
+          TargetGroupArn: !Ref TargetGroup8080
 
   TaskDefinitionTraefik:
     Type: AWS::ECS::TaskDefinition

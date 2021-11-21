@@ -28,6 +28,7 @@ Resources:
         Cluster: !GetAtt [StackServer, Outputs.Cluster]
         Domain: !GetAtt [StackServer, Outputs.Domain]
         TargetGroup: !GetAtt [StackServer, Outputs.TargetGroup]
+        TargetGroup8080: !GetAtt [StackServer, Outputs.TargetGroup8080]
         SubnetOne: !GetAtt [StackNetwork, Outputs.SubnetOne]
         SubnetTwo: !GetAtt [StackNetwork, Outputs.SubnetTwo]
         SecurityGroupWeb: !GetAtt [StackNetwork, Outputs.SecurityGroupWeb]

@@ -81,7 +81,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Properties:
       Actions:
-        - TargetGroupArn: !Ref TargetGroup
+        - TargetGroupArn: !Ref TargetGroup8080
           Type: forward
       Conditions:
         - Field: path-pattern
@@ -97,7 +97,7 @@ Resources:
         - Type: forward
           ForwardConfig:
             TargetGroups:
-              - TargetGroupArn: !Ref TargetGroup
+              - TargetGroupArn: !Ref TargetGroup8080
                 Weight: 1
       LoadBalancerArn: !Ref LoadBalancer
       Port: 8080
@@ -121,6 +121,18 @@ Resources:
     Properties:
       HealthyThresholdCount: 2
       Port: 80
+      Protocol: HTTP
+      TargetType: ip
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 0
+      VpcId: !Ref VPC
+
+  TargetGroup8080:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthyThresholdCount: 2
+      Port: 8080
       Protocol: HTTP
       TargetType: ip
       TargetGroupAttributes:
@@ -214,6 +226,9 @@ Outputs:
   TargetGroup:
     Description: TargetGroup for internet-facing traffic
     Value: !Ref TargetGroup
+  TargetGroup8080:
+    Description: TargetGroup for traffic on port 8080
+    Value: !Ref TargetGroup8080
   URL:
     Description: URL of Elastic Load Balancer
     Value: !Join ["", ["http://", !GetAtt [LoadBalancer, DNSName]]]
