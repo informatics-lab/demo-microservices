@@ -22,11 +22,11 @@ Parameters:
     Description: Subnet B in a VPC
 
 Resources:
-  ServiceSolidJS:
+  ServiceAPI:
     Type: AWS::ECS::Service
     Properties:
       Cluster: !Ref Cluster
-      TaskDefinition: !Ref TaskDefinitionSolidJS
+      TaskDefinition: !Ref TaskDefinitionAPI
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED
@@ -37,26 +37,27 @@ Resources:
             - !Ref SubnetPrivateTwo
       DesiredCount: 1
 
-  TaskDefinitionSolidJS:
+  TaskDefinitionAPI:
     Type: AWS::ECS::TaskDefinition
     Properties:
       NetworkMode: awsvpc
       ContainerDefinitions:
-        - Image: andrewgryan/my-solidjs-app:latest
-          Name: solidjs
+        - Image: andrewgryan/rust-app:latest
+          Name: api
           Memory: 32
           PortMappings:
             - ContainerPort: 80
-              HostPort: 80
+          Environment:
+            - Name: ROCKET_PORT
+              Value: 80
           DockerLabels:
-            traefik.http.routers.solidjs.rule: !Sub Host(`${Domain}`) && PathPrefix(`/solidjs`)
-            traefik.http.middlewares.solidjs-stripprefix.stripprefix.prefixes: /solidjs
-            traefik.http.middlewares.solidjs-stripprefix.stripprefix.forceSlash: false
-            traefik.http.routers.solidjs.middlewares: solidjs-stripprefix@ecs
+            traefik.http.routers.api.rule: !Sub Host(`${Domain}`) && PathPrefix(`/api`)
+            traefik.http.middlewares.api-stripprefix.stripprefix.prefixes: /api
+            traefik.http.middlewares.api-stripprefix.stripprefix.forceSlash: false
+            traefik.http.routers.api.middlewares: api-stripprefix@ecs
           LogConfiguration:
             LogDriver: awslogs
             Options:
               awslogs-region: !Ref AWS::Region
               awslogs-group: !Ref LogGroup
               awslogs-stream-prefix: !Ref AWS::StackName
-
