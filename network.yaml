@@ -18,6 +18,10 @@ Mappings:
       CIDR: "10.0.0.0/24"
     PublicTwo:
       CIDR: "10.0.1.0/24"
+    PrivateOne:
+      CIDR: "10.0.2.0/24"
+    PrivateTwo:
+      CIDR: "10.0.3.0/24"
 
 Resources:
   VPC:
@@ -40,7 +44,7 @@ Resources:
       InternetGatewayId: !Ref InternetGateway
       VpcId: !Ref VPC
 
-  PublicRouteTable:
+  RouteTablePublic:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
@@ -54,9 +58,9 @@ Resources:
     Properties:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
-      RouteTableId: !Ref PublicRouteTable
+      RouteTableId: !Ref RouteTablePublic
 
-  PublicSubnetOne:
+  SubnetPublicOne:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone: !Select
@@ -68,13 +72,13 @@ Resources:
         - Key: Name
           Value: !Sub ${AWS::StackName}-public-one
 
-  PublicSubnetOneRouteTableAssociation:
+  SubnetRouteTableAssociationPublicOne:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      RouteTableId: !Ref PublicRouteTable
-      SubnetId: !Ref PublicSubnetOne
+      RouteTableId: !Ref RouteTablePublic
+      SubnetId: !Ref SubnetPublicOne
 
-  PublicSubnetTwo:
+  SubnetPublicTwo:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone: !Select
@@ -86,11 +90,11 @@ Resources:
         - Key: Name
           Value: !Sub ${AWS::StackName}-public-two
 
-  PublicSubnetTwoRouteTableAssociation:
+  SubnetRouteTableAssociationPublicTwo:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      RouteTableId: !Ref PublicRouteTable
-      SubnetId: !Ref PublicSubnetTwo
+      RouteTableId: !Ref RouteTablePublic
+      SubnetId: !Ref SubnetPublicTwo
 
   SecurityGroupWeb:
     Type: AWS::EC2::SecurityGroup
@@ -123,16 +127,113 @@ Resources:
           ToPort: 22
           CidrIp: !Ref SSHLocation
 
+  # Private subnets and NAT gateway
+  EIPOne:
+    Type: AWS::EC2::EIP
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      Domain: vpc
+
+  EIPTwo:
+    Type: AWS::EC2::EIP
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      Domain: vpc
+
+  NatGatewayOne:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt EIPOne.AllocationId
+      SubnetId: !Ref SubnetPublicOne
+
+  NatGatewayTwo:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt EIPTwo.AllocationId
+      SubnetId: !Ref SubnetPublicTwo
+
+  RouteTablePrivateOne:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-private-1
+
+  RouteTablePrivateTwo:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-private-2
+
+  SubnetRouteTableAssociationPrivateOne:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTablePrivateOne
+      SubnetId: !Ref SubnetPrivateOne
+
+  SubnetRouteTableAssociationPrivateTwo:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTablePrivateTwo
+      SubnetId: !Ref SubnetPrivateTwo
+
+  RoutePrivateOne:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGatewayOne
+      RouteTableId: !Ref RouteTablePrivateOne
+
+  RoutePrivateTwo:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGatewayTwo
+      RouteTableId: !Ref RouteTablePrivateTwo
+
+  SubnetPrivateOne:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs { Ref: AWS::Region }
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap ["SubnetConfig", "PrivateOne", "CIDR"]
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-private-one
+
+  SubnetPrivateTwo:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs { Ref: AWS::Region }
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap ["SubnetConfig", "PrivateTwo", "CIDR"]
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-private-two
+
 Outputs:
   VPCId:
     Description: VPC ID
     Value: !Ref VPC
-  SubnetOne:
-    Description: Public Subnet One
-    Value: !Ref PublicSubnetOne
-  SubnetTwo:
-    Description: Public Subnet Two
-    Value: !Ref PublicSubnetTwo
+  SubnetPublicOne:
+    Description: Subnet One in public VPC
+    Value: !Ref SubnetPublicOne
+  SubnetPublicTwo:
+    Description: Subnet Two in public VPC
+    Value: !Ref SubnetPublicTwo
+  SubnetPrivateOne:
+    Description: Subnet One in private VPC
+    Value: !Ref SubnetPrivateOne
+  SubnetPrivateTwo:
+    Description: Subnet Two in private VPC
+    Value: !Ref SubnetPrivateTwo
   SecurityGroupWeb:
     Description: Security group allows web traffic via VPC
     Value: !Ref SecurityGroupWeb

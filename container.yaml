@@ -17,10 +17,10 @@ Parameters:
   SecurityGroupWeb:
     Type: String
     Description: SecurityGroup for internet traffic
-  SubnetOne:
+  SubnetPrivateOne:
     Type: String
     Description: Subnet A in a VPC
-  SubnetTwo:
+  SubnetPrivateTwo:
     Type: String
     Description: Subnet B in a VPC
 
@@ -87,8 +87,8 @@ Resources:
           SecurityGroups:
             - !Ref SecurityGroupWeb
           Subnets:
-            - !Ref SubnetOne
-            - !Ref SubnetTwo
+            - !Ref SubnetPrivateOne
+            - !Ref SubnetPrivateTwo
       DesiredCount: 1
       LoadBalancers:
         - ContainerName: traefik
@@ -137,8 +137,8 @@ Resources:
           SecurityGroups:
             - !Ref SecurityGroupWeb
           Subnets:
-            - !Ref SubnetOne
-            - !Ref SubnetTwo
+            - !Ref SubnetPrivateOne
+            - !Ref SubnetPrivateTwo
       DesiredCount: 1
       # Role: !Ref RoleService
 

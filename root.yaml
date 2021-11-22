@@ -14,8 +14,10 @@ Resources:
         KeyName: andy
         ImageId: /aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id
         ClusterName: practice
-        SubnetOne: !GetAtt [StackNetwork, Outputs.SubnetOne]
-        SubnetTwo: !GetAtt [StackNetwork, Outputs.SubnetTwo]
+        SubnetPublicOne: !GetAtt [StackNetwork, Outputs.SubnetPublicOne]
+        SubnetPublicTwo: !GetAtt [StackNetwork, Outputs.SubnetPublicTwo]
+        SubnetPrivateOne: !GetAtt [StackNetwork, Outputs.SubnetPrivateOne]
+        SubnetPrivateTwo: !GetAtt [StackNetwork, Outputs.SubnetPrivateTwo]
         SecurityGroupSSH: !GetAtt [StackNetwork, Outputs.SecurityGroupSSH]
         SecurityGroupWeb: !GetAtt [StackNetwork, Outputs.SecurityGroupWeb]
         VPC: !GetAtt [StackNetwork, Outputs.VPCId]
@@ -29,6 +31,6 @@ Resources:
         Domain: !GetAtt [StackServer, Outputs.Domain]
         TargetGroup: !GetAtt [StackServer, Outputs.TargetGroup]
         TargetGroup8080: !GetAtt [StackServer, Outputs.TargetGroup8080]
-        SubnetOne: !GetAtt [StackNetwork, Outputs.SubnetOne]
-        SubnetTwo: !GetAtt [StackNetwork, Outputs.SubnetTwo]
+        SubnetPrivateOne: !GetAtt [StackNetwork, Outputs.SubnetPrivateOne]
+        SubnetPrivateTwo: !GetAtt [StackNetwork, Outputs.SubnetPrivateTwo]
         SecurityGroupWeb: !GetAtt [StackNetwork, Outputs.SecurityGroupWeb]
