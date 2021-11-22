@@ -126,7 +126,13 @@ Resources:
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      HealthyThresholdCount: 2
+      HealthCheckIntervalSeconds: 10
+      HealthCheckTimeoutSeconds: 5
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthyThresholdCount: 5
+      Matcher:
+        HttpCode: 404
       Port: 80
       Protocol: HTTP
       TargetType: ip
@@ -138,7 +144,11 @@ Resources:
   TargetGroup8080:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      HealthyThresholdCount: 2
+      HealthCheckIntervalSeconds: 10
+      HealthCheckTimeoutSeconds: 5
+      HealthCheckPath: /dashboard/
+      HealthCheckProtocol: HTTP
+      HealthyThresholdCount: 5
       Port: 8080
       Protocol: HTTP
       TargetType: ip
