@@ -52,9 +52,9 @@ Resources:
               Value: 80
           DockerLabels:
             traefik.http.routers.api.rule: !Sub Host(`${Domain}`) && PathPrefix(`/api`)
+            traefik.http.routers.api.middlewares: api-stripprefix@ecs
             traefik.http.middlewares.api-stripprefix.stripprefix.prefixes: /api
             traefik.http.middlewares.api-stripprefix.stripprefix.forceSlash: false
-            traefik.http.routers.api.middlewares: api-stripprefix@ecs
           LogConfiguration:
             LogDriver: awslogs
             Options:
