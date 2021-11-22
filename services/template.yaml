@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  Cluster:
+    Type: String
+    Description: Name of Cluster to host services and tasks
+  Domain:
+    Type: String
+    Description: Domain name for Traefik to use
+  TargetGroup:
+    Type: String
+    Description: TargetGroup for internet traffic
+  TargetGroup8080:
+    Type: String
+    Description: TargetGroup for Traefik traffic
+
+  SecurityGroupWeb:
+    Type: String
+    Description: SecurityGroup for internet traffic
+  SubnetPrivateOne:
+    Type: String
+    Description: Subnet A in a VPC
+  SubnetPrivateTwo:
+    Type: String
+    Description: Subnet B in a VPC
+
+Resources:
+  StackTraefik:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: traefik.yaml
+      Parameters:
+        Cluster: !Ref Cluster
+        TargetGroup: !Ref TargetGroup
+        TargetGroup8080: !Ref TargetGroup8080
+        SubnetPrivateOne: !Ref SubnetPrivateOne
+        SubnetPrivateTwo: !Ref SubnetPrivateTwo
+        SecurityGroupWeb: !Ref SecurityGroupWeb
+        LogGroup: !Ref LogGroup
+
+  StackFrontend:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: frontend.yaml
+      Parameters:
+        Cluster: !Ref Cluster
+        Domain: !Ref Domain
+        SubnetPrivateOne: !Ref SubnetPrivateOne
+        SubnetPrivateTwo: !Ref SubnetPrivateTwo
+        SecurityGroupWeb: !Ref SecurityGroupWeb
+        LogGroup: !Ref LogGroup
+
+  StackApi:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: api.yaml
+      Parameters:
+        Cluster: !Ref Cluster
+        Domain: !Ref Domain
+        SubnetPrivateOne: !Ref SubnetPrivateOne
+        SubnetPrivateTwo: !Ref SubnetPrivateTwo
+        SecurityGroupWeb: !Ref SecurityGroupWeb
+        LogGroup: !Ref LogGroup
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub ${AWS::StackName}-logs
+      RetentionInDays: 14

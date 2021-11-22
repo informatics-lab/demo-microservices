@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  Cluster:
+    Type: String
+    Description: Name of Cluster to host services and tasks
+  Domain:
+    Type: String
+    Description: Domain name for Traefik to use
+  LogGroup:
+    Type: String
+    Description: LogGroup to capture container output
+
+  SecurityGroupWeb:
+    Type: String
+    Description: SecurityGroup for internet traffic
+  SubnetPrivateOne:
+    Type: String
+    Description: Subnet A in a VPC
+  SubnetPrivateTwo:
+    Type: String
+    Description: Subnet B in a VPC
+
+Resources:
+  ServiceNGINX:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref Cluster
+      TaskDefinition: !Ref TaskDefinitionNGINX
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - !Ref SecurityGroupWeb
+          Subnets:
+            - !Ref SubnetPrivateOne
+            - !Ref SubnetPrivateTwo
+      DesiredCount: 1
+
+  TaskDefinitionNGINX:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Image: nginx:latest
+          Name: nginx
+          Memory: 32
+          PortMappings:
+            - ContainerPort: 80
+              HostPort: 80
+          DockerLabels:
+            traefik.http.routers.nginx.rule: !Sub Host(`${Domain}`)
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-region: !Ref AWS::Region
+              awslogs-group: !Ref LogGroup
+              awslogs-stream-prefix: !Ref AWS::StackName

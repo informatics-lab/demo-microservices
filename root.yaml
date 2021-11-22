@@ -25,7 +25,7 @@ Resources:
   StackContainer:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: container.yaml
+      TemplateURL: services/template.yaml
       Parameters:
         Cluster: !GetAtt [StackServer, Outputs.Cluster]
         Domain: !GetAtt [StackServer, Outputs.Domain]

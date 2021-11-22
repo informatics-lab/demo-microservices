@@ -4,15 +4,15 @@ Parameters:
   Cluster:
     Type: String
     Description: Name of Cluster to host services and tasks
-  Domain:
-    Type: String
-    Description: Domain name for Traefik to use
   TargetGroup:
     Type: String
     Description: TargetGroup for internet traffic
   TargetGroup8080:
     Type: String
     Description: TargetGroup for Traefik traffic
+  LogGroup:
+    Type: String
+    Description: LogGroup to capture container output
 
   SecurityGroupWeb:
     Type: String
@@ -84,8 +84,6 @@ Resources:
               Value: !Ref Cluster
             - Name: AWS_REGION
               Value: !Ref AWS::Region
-            - Name: DOMAIN
-              Value: !Ref Domain
           Name: traefik
           Memory: 32
           PortMappings:
@@ -100,82 +98,3 @@ Resources:
               awslogs-group: !Ref LogGroup
               awslogs-stream-prefix: !Ref AWS::StackName
       TaskRoleArn: !Ref RoleTraefik
-
-  ServiceNGINX:
-    Type: AWS::ECS::Service
-    Properties:
-      Cluster: !Ref Cluster
-      TaskDefinition: !Ref TaskDefinitionNGINX
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          AssignPublicIp: DISABLED
-          SecurityGroups:
-            - !Ref SecurityGroupWeb
-          Subnets:
-            - !Ref SubnetPrivateOne
-            - !Ref SubnetPrivateTwo
-      DesiredCount: 1
-
-  TaskDefinitionNGINX:
-    Type: AWS::ECS::TaskDefinition
-    Properties:
-      NetworkMode: awsvpc
-      ContainerDefinitions:
-        - Image: nginx:latest
-          Name: nginx
-          Memory: 32
-          PortMappings:
-            - ContainerPort: 80
-              HostPort: 80
-          DockerLabels:
-            traefik.http.routers.nginx.rule: !Sub Host(`${Domain}`)
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-region: !Ref AWS::Region
-              awslogs-group: !Ref LogGroup
-              awslogs-stream-prefix: !Ref AWS::StackName
-
-  ServiceSolidJS:
-    Type: AWS::ECS::Service
-    Properties:
-      Cluster: !Ref Cluster
-      TaskDefinition: !Ref TaskDefinitionSolidJS
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          AssignPublicIp: DISABLED
-          SecurityGroups:
-            - !Ref SecurityGroupWeb
-          Subnets:
-            - !Ref SubnetPrivateOne
-            - !Ref SubnetPrivateTwo
-      DesiredCount: 1
-
-  TaskDefinitionSolidJS:
-    Type: AWS::ECS::TaskDefinition
-    Properties:
-      NetworkMode: awsvpc
-      ContainerDefinitions:
-        - Image: andrewgryan/my-solidjs-app:latest
-          Name: solidjs
-          Memory: 32
-          PortMappings:
-            - ContainerPort: 80
-              HostPort: 80
-          DockerLabels:
-            traefik.http.routers.solidjs.rule: !Sub Host(`${Domain}`) && PathPrefix(`/solidjs`)
-            traefik.http.middlewares.solidjs-stripprefix.stripprefix.prefixes: /solidjs
-            traefik.http.middlewares.solidjs-stripprefix.stripprefix.forceSlash: false
-            traefik.http.routers.solidjs.middlewares: solidjs-stripprefix@ecs
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-region: !Ref AWS::Region
-              awslogs-group: !Ref LogGroup
-              awslogs-stream-prefix: !Ref AWS::StackName
-
-  LogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub ${AWS::StackName}-logs
-      RetentionInDays: 14
