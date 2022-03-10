@@ -62,6 +62,18 @@ Resources:
         SecurityGroupWeb: !Ref SecurityGroupWeb
         LogGroup: !Ref LogGroup
 
+  StackForest:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: forest.yaml
+      Parameters:
+        Cluster: !Ref Cluster
+        Domain: !Ref Domain
+        SubnetPrivateOne: !Ref SubnetPrivateOne
+        SubnetPrivateTwo: !Ref SubnetPrivateTwo
+        SecurityGroupWeb: !Ref SecurityGroupWeb
+        LogGroup: !Ref LogGroup
+
   LogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
