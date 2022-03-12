@@ -22,11 +22,11 @@ Parameters:
     Description: Subnet B in a VPC
 
 Resources:
-  ServiceNGINX:
+  ServiceFOREST:
     Type: AWS::ECS::Service
     Properties:
       Cluster: !Ref Cluster
-      TaskDefinition: !Ref TaskDefinitionNGINX
+      TaskDefinition: !Ref TaskDefinitionFOREST
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED
@@ -37,19 +37,28 @@ Resources:
             - !Ref SubnetPrivateTwo
       DesiredCount: 1
 
-  TaskDefinitionNGINX:
+  TaskDefinitionFOREST:
     Type: AWS::ECS::TaskDefinition
     Properties:
       NetworkMode: awsvpc
       ContainerDefinitions:
-        - Image: nginx:latest
-          Name: nginx
-          Memory: 32
+        - Image: andrewgryan/forest-app:latest
+          Name: demo
+          Memory: 256
           PortMappings:
-            - ContainerPort: 80
-              HostPort: 80
+            - ContainerPort: 5050
+          Environment:
+            - Name: ROCKET_PORT
+              Value: 5050
+            - Name: DUMMY
+              Value: 3
           DockerLabels:
-            traefik.http.routers.nginx.rule: !Sub Host(`${Domain}`) && PathPrefix(`/nginx`)
+            traefik.http.routers.demo.rule: !Sub Host(`${Domain}`) # && PathPrefix(`/demo`)
+              # traefik.http.routers.demo.middlewares: demo-stripprefix@ecs,demo-addprefix@ecs
+              # traefik.http.middlewares.demo-stripprefix.stripprefix.prefixes: /demo
+              # traefik.http.middlewares.demo-stripprefix.stripprefix.forceSlash: false
+              # traefik.http.middlewares.demo-addprefix.addprefix.prefix: /forest
+            traefik.http.services.demo.loadbalancer.server.port: 5050
           LogConfiguration:
             LogDriver: awslogs
             Options:
