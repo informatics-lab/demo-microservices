@@ -1,8 +1,9 @@
 edition: 2022
 datasets:
-- label: 'UM'
+- label: 'unified_model.nc'
   description: 'Unified model'
   driver:
     name: 'unified_model'
     settings:
+      label: 'UM'
       pattern: unified_model.nc

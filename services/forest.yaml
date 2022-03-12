@@ -50,10 +50,8 @@ Resources:
           Environment:
             - Name: ROCKET_PORT
               Value: 5050
-            - Name: TODO_FOREST_PORT
-              Value: 5050
-            - Name: TODO_FOREST_ADDRESS
-              Value: 0.0.0.0
+            - Name: DUMMY
+              Value: 2
           DockerLabels:
             traefik.http.routers.demo.rule: !Sub Host(`${Domain}`) # && PathPrefix(`/demo`)
               # traefik.http.routers.demo.middlewares: demo-stripprefix@ecs,demo-addprefix@ecs
