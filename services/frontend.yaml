@@ -49,7 +49,7 @@ Resources:
             - ContainerPort: 80
               HostPort: 80
           DockerLabels:
-            traefik.http.routers.nginx.rule: !Sub Host(`${Domain}`)
+            traefik.http.routers.nginx.rule: !Sub Host(`${Domain}`) && PathPrefix(`/nginx`)
           LogConfiguration:
             LogDriver: awslogs
             Options:
