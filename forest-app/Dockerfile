@@ -7,7 +7,5 @@ COPY forest.config.yaml forest.config.yaml
 
 ENV BOKEH_ALLOW_WS_ORIGIN '*'
 
-# CMD ["forest", "view", "--no-open-tab", "--port", "5050", "--driver", "unified_model", "unified_model.nc"]
-CMD ["bokeh", "serve", "/opt/conda/lib/python3.9/site-packages/forest", "--address", "0.0.0.0", "--port", "5050", "--args", "--config-file", "forest.config.yaml"]
-
-
+CMD ["forest", "ctl", "--no-open-tab", "--port", "5050", "forest.config.yaml"]
+# CMD ["bokeh", "serve", "/opt/conda/lib/python3.9/site-packages/forest", "--address", "0.0.0.0", "--port", "5050", "--args", "--config-file", "forest.config.yaml"]

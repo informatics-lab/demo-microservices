@@ -51,7 +51,7 @@ Resources:
             - Name: ROCKET_PORT
               Value: 5050
             - Name: DUMMY
-              Value: 2
+              Value: 3
           DockerLabels:
             traefik.http.routers.demo.rule: !Sub Host(`${Domain}`) # && PathPrefix(`/demo`)
               # traefik.http.routers.demo.middlewares: demo-stripprefix@ecs,demo-addprefix@ecs
