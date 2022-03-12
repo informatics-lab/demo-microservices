@@ -115,6 +115,10 @@ Resources:
           FromPort: 443
           IpProtocol: "tcp"
           ToPort: 443
+        - CidrIp: 0.0.0.0/0
+          FromPort: 5000
+          IpProtocol: "tcp"
+          ToPort: 6000
 
   SecurityGroupSSH:
     Type: AWS::EC2::SecurityGroup

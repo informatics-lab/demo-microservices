@@ -42,14 +42,20 @@ Resources:
     Properties:
       NetworkMode: awsvpc
       ContainerDefinitions:
-        - Image: andrewgryan/forest-app:latest
-          Name: forest
+        - Image: andrewgryan/rust-app:latest
+          Name: demo
           Memory: 32
           PortMappings:
-            - ContainerPort: 80
-              HostPort: 80
+            - ContainerPort: 5050
+          Environment:
+            - Name: ROCKET_PORT
+              Value: 5050
           DockerLabels:
-            traefik.http.routers.forest.rule: !Sub Host(`${Domain}`) && PathPrefix(`/forest`)
+            traefik.http.routers.demo.rule: !Sub Host(`${Domain}`) && PathPrefix(`/demo`)
+            traefik.http.routers.demo.middlewares: demo-stripprefix@ecs
+            traefik.http.middlewares.demo-stripprefix.stripprefix.prefixes: /demo
+            traefik.http.middlewares.demo-stripprefix.stripprefix.forceSlash: false
+            traefik.http.services.demo.loadbalancer.server.port: 5050
           LogConfiguration:
             LogDriver: awslogs
             Options:

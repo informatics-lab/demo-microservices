@@ -4,6 +4,8 @@ RUN conda install -y -c conda-forge forest=0.20.9 typer
 
 COPY unified_model.nc unified_model.nc
 
-CMD ["forest", "view", "--no-open-tab", "--port", "80", "--driver", "unified_model", "unified_model.nc"]
+ENV BOKEH_ALLOW_WS_ORIGIN '*'
+
+CMD ["forest", "view", "--no-open-tab", "--port", "5050", "--driver", "unified_model", "unified_model.nc"]
 
 
