@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  Domain:
+    Type: String
+    Description: Domain name for Origin to use
+
+Resources:
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultCacheBehavior:
+          TargetOriginId: demo
+          ViewerProtocolPolicy: allow-all
+          AllowedMethods:
+            - HEAD
+            - GET
+            - OPTIONS
+          ForwardedValues:
+            QueryString: true
+        Origins:
+          - DomainName: !Ref Domain
+            Id: demo
+            CustomOriginConfig:
+              OriginProtocolPolicy: http-only

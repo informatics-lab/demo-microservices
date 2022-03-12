@@ -1,6 +1,13 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
 Resources:
+  StackCloudFront:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: cloudfront.yaml
+      Parameters:
+        Domain: !GetAtt [StackServer, Outputs.Domain]
+
   StackNetwork:
     Type: AWS::CloudFormation::Stack
     Properties:
